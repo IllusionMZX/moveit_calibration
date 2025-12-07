@@ -61,7 +61,7 @@
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.h> // change .hpp to .h for system include -- modified by miao zixiang
 #include <image_transport/image_transport.hpp>
 
 #include <pluginlib/class_loader.hpp>

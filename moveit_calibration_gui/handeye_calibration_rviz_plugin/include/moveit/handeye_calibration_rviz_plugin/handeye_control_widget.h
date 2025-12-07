@@ -59,8 +59,8 @@
 #include <pluginlib/class_loader.hpp>
 #include <tf2_ros/transform_listener.h>
 #include <rviz_visual_tools/tf_visual_tools.hpp>
-#include <moveit/move_group_interface/move_group_interface.h>
-#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
+#include <moveit/move_group_interface/move_group_interface.h> // change .hpp to .h for system include -- modified by miao zixiang
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h> // change .hpp to .h for system include -- modified by miao zixiang
 #include <moveit/handeye_calibration_solver/handeye_solver_base.h>
 #include <moveit/planning_scene_rviz_plugin/background_processing.hpp>
 #include <moveit/handeye_calibration_rviz_plugin/handeye_calibration_display.h>
