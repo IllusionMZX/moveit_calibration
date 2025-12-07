@@ -140,7 +140,7 @@ bool HandEyeArucoTarget::createTargetImage(cv::Mat& image) const
     // Create target
     cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(dictionary_id_);
     cv::Ptr<cv::aruco::GridBoard> board =
-        cv::aruco::GridBoard::create(markers_x_, markers_y_, float(marker_size_), float(separation_), dictionary);
+        cv::aruco::GridBoard::create(markers_x_, markers_y_, float(marker_size_), float(separation_), dictionary,582);
 
     // Create target image
     board->draw(image_size, image, separation_, border_bits_);
@@ -163,7 +163,7 @@ bool HandEyeArucoTarget::detectTargetPose(cv::Mat& image)
     aruco_mutex_.lock();
     cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(dictionary_id_);
     cv::Ptr<cv::aruco::GridBoard> board =
-        cv::aruco::GridBoard::create(markers_x_, markers_y_, marker_size_real_, marker_separation_real_, dictionary);
+        cv::aruco::GridBoard::create(markers_x_, markers_y_, marker_size_real_, marker_separation_real_, dictionary,582);
     aruco_mutex_.unlock();
     cv::Ptr<cv::aruco::DetectorParameters> params_ptr(new cv::aruco::DetectorParameters());
 #if CV_MAJOR_VERSION == 3 && CV_MINOR_VERSION == 2

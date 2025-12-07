@@ -37,7 +37,11 @@
 #include <moveit/handeye_calibration_rviz_plugin/handeye_control_widget.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <rclcpp/rclcpp.hpp>
+<<<<<<< HEAD
 #include <moveit/utils/moveit_error_code.hpp>
+=======
+#include <moveit/utils/moveit_error_code.h>
+>>>>>>> d8f44e8 (add fork)
 
 
 namespace moveit_rviz_plugin
