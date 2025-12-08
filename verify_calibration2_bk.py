@@ -8,6 +8,8 @@ import cv2
 import numpy as np
 import tf2_ros
 import tf2_geometry_msgs
+from rtde_control import RTDEControlInterface
+from rtde_receive import RTDEReceiveInterface
 
 class CalibrationVerification(Node):
     def __init__(self):
@@ -38,6 +40,16 @@ class CalibrationVerification(Node):
         self.latest_depth = None
         self.camera_intrinsics = None
         self.frame_count = 0
+        
+        # UR3e
+        self.ur_ip = "192.168.1.10"
+        self.rtde_c = RTDEControlInterface(self.ur_ip)
+        self.rtde_r = RTDEReceiveInterface(self.ur_ip)
+        self.get_logger().info("✓ 已连接到 UR3e")
+        
+        self.position_history = [] 
+        self.stability_duration = 10.0 
+        self.stability_threshold = 0.01 
         
         self.get_logger().info('=== 木块检测节点已启动 ===')
         self.get_logger().info('等待相机数据...')
@@ -194,12 +206,68 @@ class CalibrationVerification(Node):
                             self.get_logger().info(f"10. base_link 坐标系:")
                             self.get_logger().info(f'    X={point_base.point.x:.4f}m, Y={point_base.point.y:.4f}m, Z={point_base.point.z:.4f}m')
                             self.get_logger().info('='*60)
+
+                            # 记录位置历史
+                            self.position_history.append(point_base.point)
+                            
+                            # 只保留最近10个采样
+                            if len(self.position_history) > 10:
+                                self.position_history.pop(0)
+                            
+                            # 检查稳定性
+                            max_dev = 0
+                            is_stable = False
+                            
+                            if len(self.position_history) >= 10:
+                                xs = [p.x for p in self.position_history]
+                                ys = [p.y for p in self.position_history]
+                                zs = [p.z for p in self.position_history]
+                                max_dev = max(max(xs)-min(xs), max(ys)-min(ys), max(zs)-min(zs))
+                                
+                                if max_dev < self.stability_threshold:
+                                    is_stable = True
+
+                            if is_stable:
+                                # 获取当前 TCP 位姿
+                                current_tcp = self.rtde_r.getActualTCPPose()
+                                
+                                # 计算目标位置 (Match verify_calibration.py logic)
+                                # 在Z轴方向增加20cm保护空间
+                                target_pose = [
+                                    -point_base.point.x,
+                                    -point_base.point.y,
+                                    point_base.point.z + 0.15,
+                                    current_tcp[3],
+                                    current_tcp[4],
+                                    current_tcp[5],
+                                ]
+                                
+                                self.get_logger().info(f"当前 TCP 位姿: {current_tcp}")
+                                self.get_logger().info(f"目标 TCP 位姿 (controller base): {target_pose}")
+                                self.get_logger().info("=" * 60)
+
+                                # 发布 debug 图像 (在等待输入前发布)
+                                self._publish_debug_image(debug_img)
+
+                                # Wait for confirmation
+                                user_input = input("位置已稳定(10个采样)。是否移动到目标位置? (y/n): ")
+                                if user_input.lower() == 'y':
+                                    # 发送目标位置到机械臂
+                                    self.rtde_c.moveL(target_pose, 0.05, 0.05)
+                                    self.get_logger().info("机械臂已移动到目标位置。")
+                                    # 移动成功后清空历史，重新开始监测
+                                    self.position_history = []
+                                else:
+                                    self.get_logger().info("取消移动，重新开始监测。")
+                                    self.position_history = []
                             
                         except Exception as e:
-                            self.get_logger().error(f'TF变换错误: {e}')
-                            
-                # 发布 debug 图像
-                self._publish_debug_image(debug_img)
+                            self.get_logger().error(f'TF变换或机械臂控制错误: {e}')
+            else:
+                self.position_history = [] # 未检测到木块，重置历史
+            
+            # 发布 debug 图像
+            self._publish_debug_image(debug_img)
     
     def _publish_debug_image(self, cv_image):
         """发布调试图像"""
@@ -208,6 +276,15 @@ class CalibrationVerification(Node):
             self.debug_pub.publish(debug_msg)
         except Exception as e:
             self.get_logger().error(f'发布调试图像失败: {e}')
+
+    def destroy_node(self):
+        # 确保脚本停止，释放机械臂控制权
+        try:
+            if hasattr(self, 'rtde_c'):
+                self.rtde_c.stopScript()
+        except Exception as e:
+            self.get_logger().warn(f"释放机械臂控制权失败: {e}")
+        super().destroy_node()
 
 def main(args=None):
     rclpy.init(args=args)
